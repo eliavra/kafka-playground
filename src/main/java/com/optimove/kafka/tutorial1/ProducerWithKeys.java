@@ -6,11 +6,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Properties;
+import java.util.concurrent.ExecutionException;
 
-public class ProducerWithCallback {
-    public static void main(String[] args) {
+public class ProducerWithKeys {
+    public static void main(String[] args) throws ExecutionException, InterruptedException, ExecutionException {
 
-        final Logger logger = LoggerFactory.getLogger(ProducerWithCallback.class);
+        final Logger logger = LoggerFactory.getLogger(ProducerWithKeys.class);
 
         String bootstrapServers = "127.0.0.1:9092";
 
@@ -26,9 +27,15 @@ public class ProducerWithCallback {
 
         for (int i=0; i<10; i++ ) {
             // create a producer record
-            ProducerRecord<String, String> record =
-                    new ProducerRecord<String, String>("first_topic", "hello world " + Integer.toString(i));
 
+            String topic = "first_topic";
+            String value = "hello world " + Integer.toString(i);
+            String key = "id_" + Integer.toString(i);
+
+            ProducerRecord<String, String> record =
+                    new ProducerRecord<String, String>(topic, key, value);
+
+            logger.info("Key: " + key); // log the key
             // send data - asynchronous
             producer.send(record, new Callback() {
                 public void onCompletion(RecordMetadata recordMetadata, Exception e) {
@@ -44,12 +51,10 @@ public class ProducerWithCallback {
                         logger.error("Error while producing", e);
                     }
                 }
-            });
+            }).get();
         }
 
-        // flush data
         producer.flush();
-        // flush and close producer
         producer.close();
 
     }
